@@ -1,0 +1,33 @@
+﻿<Window x:Class="WpfApp7.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp7"
+        mc:Ignorable="d"
+        Title="EventHandler 데모" Height="300" Width="420">
+    <!-- 3.4 XAML & EventHandler 실습: Click 속성으로 이벤트를 연결하고,
+         숫자 버튼 3개가 "하나의" 이벤트 핸들러를 sender로 구분해서 공유하는 걸 보여줌 -->
+    <Grid Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Label x:Name="resultLabel"
+               Content="0"
+               FontSize="40"
+               Grid.Row="0" Grid.ColumnSpan="3"
+               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+        <!-- 셋 다 Click="digitButton_Click" 으로 같은 메서드를 가리킴 -->
+        <Button Content="7" Grid.Row="1" Grid.Column="0" Margin="4" Click="digitButton_Click"/>
+        <Button Content="8" Grid.Row="1" Grid.Column="1" Margin="4" Click="digitButton_Click"/>
+        <Button Content="9" Grid.Row="1" Grid.Column="2" Margin="4" Click="digitButton_Click"/>
+    </Grid>
+</Window>

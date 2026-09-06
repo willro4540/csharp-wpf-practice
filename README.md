@@ -66,6 +66,14 @@ Label이 전부 올바른 이름으로 생성됐는지 구조적으로 확인함
 생성된 `obj\Debug\...\MainWindow.g.cs`(x:Name → internal 필드 매핑)를 학습 자료에
 그대로 인용했습니다.
 
+## WpfApp7 — XAML & EventHandler 공유 핸들러 데모 (2026-09-07)
+
+`basiclike.tistory.com/326`(3.4 XAML & EventHandler) 실습용. 버튼 7/8/9가 전부
+`Click="digitButton_Click"`으로 같은 메서드를 가리키고, `sender`를 `(Button)`으로
+캐스팅해 어느 버튼이 눌렸는지 구분합니다(원문은 버튼별 개별 핸들러 예제지만,
+sender의 실제 존재 이유를 보여주려 공유 핸들러로 재구성). UI Automation으로
+7→9→7 클릭 시퀀스를 실행해 클릭 전/후 스크린샷으로 검증.
+
 ## 참고 자료
 
 좋은 예시 코드 리서치는 `personal-study-method-skill` 저장소의 `classroom-pc` 브랜치,
