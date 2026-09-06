@@ -1,0 +1,34 @@
+﻿<Window x:Class="WpfApp6.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp6"
+        mc:Ignorable="d"
+        Title="Code Behind 데모" Height="300" Width="420">
+    <!-- 3.3 XAML & Code Behind 실습: x:Name으로 이름 붙인 컨트롤을
+         코드비하인드에서 그대로 참조/조작하는 걸 눈으로 확인하기 -->
+    <Grid x:Name="CalculatorGrid" Margin="10">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- XAML에서는 Content="0"으로 시작하지만, 아래 .cs 생성자가
+             실행되면서 이 값을 "12345"로 덮어씀 -->
+        <Label x:Name="resultLabel"
+               Content="0"
+               FontSize="40"
+               Grid.Row="0" Grid.ColumnSpan="2"
+               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+        <!-- 여기 있는 버튼은 XAML에 손으로 적은 버튼 -->
+        <Button x:Name="acButton" Content="AC" Grid.Row="1" Grid.Column="1" Margin="4"/>
+        <!-- Grid.Row=1, Grid.Column=0 자리는 비워둠 -
+             .cs 코드가 실행 중에 여기에 버튼을 동적으로 추가함(아래 참고) -->
+    </Grid>
+</Window>

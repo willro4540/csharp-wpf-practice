@@ -57,6 +57,15 @@ Label이 전부 올바른 이름으로 생성됐는지 구조적으로 확인함
 각 탭을 UI Automation으로 선택 후 스크린샷을 찍어 학습 자료(바탕화면 HTML 가이드)에
 실제 실행 화면으로 삽입했습니다 — 도표가 아니라 진짜 실행 결과물입니다.
 
+## WpfApp6 — XAML & Code Behind 연결 데모 (2026-09-07)
+
+`basiclike.tistory.com/325`(3.3 XAML & Code Behind) 실습용. `x:Name="resultLabel"`을
+코드비하인드 생성자에서 `resultLabel.Content = "12345"`로 덮어써서 XAML↔C# 연결을
+눈으로 확인하고, `FindName("CalculatorGrid")` + `Grid.Children.Add(...)`로 XAML에
+없던 버튼을 런타임에 동적 생성하는 것까지 한 화면에서 보여줍니다. 빌드 후 실제
+생성된 `obj\Debug\...\MainWindow.g.cs`(x:Name → internal 필드 매핑)를 학습 자료에
+그대로 인용했습니다.
+
 ## 참고 자료
 
 좋은 예시 코드 리서치는 `personal-study-method-skill` 저장소의 `classroom-pc` 브랜치,
