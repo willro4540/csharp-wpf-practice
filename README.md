@@ -74,6 +74,14 @@ Label이 전부 올바른 이름으로 생성됐는지 구조적으로 확인함
 sender의 실제 존재 이유를 보여주려 공유 핸들러로 재구성). UI Automation으로
 7→9→7 클릭 시퀀스를 실행해 클릭 전/후 스크린샷으로 검증.
 
+## WpfApp8 — Designer/Style(타이틀·아이콘·색상·ColumnSpan) 데모 (2026-09-07)
+
+`basiclike.tistory.com/428`(3.5 XAML - Designer, Style) 실습용. VS 디자이너의
+마우스 조작(컨트롤 복사/크기조정/타이틀·아이콘/색상변경)을 손으로 쓴 XAML로
+재현: `Title`/`Icon`(직접 생성한 `calculator_icon.ico`, `.csproj`에 `Resource`
+항목으로 포함), `Grid.ColumnSpan="2"`로 `0` 버튼 확장, 다크 테마 색상
+(`#FF333333`/`#FF444444`/`#FF0067C0`)까지 반영해 실행 화면을 스크린샷으로 검증.
+
 ## 참고 자료
 
 좋은 예시 코드 리서치는 `personal-study-method-skill` 저장소의 `classroom-pc` 브랜치,
