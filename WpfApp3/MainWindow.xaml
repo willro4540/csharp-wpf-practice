@@ -1,0 +1,55 @@
+﻿<Window x:Class="WpfApp3.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApp3"
+        mc:Ignorable="d"
+        Title="할 일 목록 / 연락처" Height="450" Width="800">
+    <!--
+        TabControl: 창 하나 안에 탭(페이지)을 여러 개 두는 컨트롤.
+        TabItem 하나 = 탭 하나. Header가 탭에 표시되는 제목, 그 안에 실제 화면 내용이 들어감.
+        지금 과제(할 일 목록 ✓ / 연락처 ✓)를 "한 프로젝트 안에서 병행"하기로 했으니,
+        새 창을 여러 개 띄우는 대신 탭으로 나눠서 한 창 안에 다 넣음.
+    -->
+    <TabControl>
+        <TabItem Header="할 일 목록">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <!-- 위: 입력줄(고정 높이), 아래: 목록(남는 공간 전부 차지) -->
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 입력줄: 텍스트박스 하나 + 버튼 두 개를 가로로 나란히 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBox x:Name="todoInputBox" Width="500" Margin="0,0,10,0"/>
+                    <Button x:Name="todoAddButton" Content="추가" Width="80" Click="TodoAddButton_Click"/>
+                    <Button x:Name="todoDeleteButton" Content="선택 삭제" Width="80" Margin="10,0,0,0" Click="TodoDeleteButton_Click"/>
+                </StackPanel>
+
+                <!-- 할 일들이 실제로 쌓이는 목록. x:Name으로 코드(.cs)에서 이 목록을 조작함 -->
+                <ListBox x:Name="todoListBox" Grid.Row="1"/>
+            </Grid>
+        </TabItem>
+
+        <TabItem Header="연락처">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- 이름 + 전화번호, 두 칸을 따로 입력받음 -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBox x:Name="contactNameBox" Width="200" Margin="0,0,10,0"/>
+                    <TextBox x:Name="contactPhoneBox" Width="200" Margin="0,0,10,0"/>
+                    <Button x:Name="contactAddButton" Content="추가" Width="80" Click="ContactAddButton_Click"/>
+                    <Button x:Name="contactDeleteButton" Content="선택 삭제" Width="80" Margin="10,0,0,0" Click="ContactDeleteButton_Click"/>
+                </StackPanel>
+
+                <ListBox x:Name="contactListBox" Grid.Row="1"/>
+            </Grid>
+        </TabItem>
+    </TabControl>
+</Window>
