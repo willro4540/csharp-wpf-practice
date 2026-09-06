@@ -50,6 +50,13 @@ Label이 전부 올바른 이름으로 생성됐는지 구조적으로 확인함
 글 자체가 UI 레이아웃까지만 다루고 있어서, 로직은 다음 실습(후속 글) 범위로
 남겨둠.
 
+## WpfApp5 — XAML Panels 5종 비교 데모 (2026-09-07)
+
+`basiclike.tistory.com/324`(3.2 XAML - Panels) 실습용. `TabControl`로 탭 5개를 나눠
+`Canvas`/`WrapPanel`/`StackPanel`/`DockPanel`/`Grid`를 블로그 예제 그대로 재현했습니다.
+각 탭을 UI Automation으로 선택 후 스크린샷을 찍어 학습 자료(바탕화면 HTML 가이드)에
+실제 실행 화면으로 삽입했습니다 — 도표가 아니라 진짜 실행 결과물입니다.
+
 ## 참고 자료
 
 좋은 예시 코드 리서치는 `personal-study-method-skill` 저장소의 `classroom-pc` 브랜치,
