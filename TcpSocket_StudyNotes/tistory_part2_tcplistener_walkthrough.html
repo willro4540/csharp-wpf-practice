@@ -1,0 +1,186 @@
+<h2>2부. 진짜 서버 코드 3줄, 완전히 뜯어보기 — TCPListener 1단계</h2>
+
+<p>1부에서 <code>async</code>/<code>await</code>가 "기다리는 동안 자리를 비워도 되는 것"이라는 걸 봤어요. 이제 그걸 들고 <a href="https://basiclike.tistory.com/240" target="_blank">11강. TCPListener 서버 1단계</a>의 실제 코드로 가볼게요.</p>
+
+<h3>지금 어디쯤 와있는 건지 — 전체 지도</h3>
+
+<p>강의가 6단계로 쪼개져 있어서 지금 위치를 놓치기 쉬워요. 표로 미리 정리해둘게요. 오늘은 <strong>강조된 줄(11강)</strong>만 다뤄요 — 나머지는 몰라도 되니 미리 겁먹지 마세요.</p>
+
+<table style="width:100%; border-collapse: collapse; margin: 16px 0;">
+<thead>
+<tr style="background:#f2f2f2;">
+<th style="border:1px solid #ddd; padding:8px; text-align:left;">강</th>
+<th style="border:1px solid #ddd; padding:8px; text-align:left;">제목</th>
+<th style="border:1px solid #ddd; padding:8px; text-align:left;">한 줄 요약</th>
+</tr>
+</thead>
+<tbody>
+<tr><td style="border:1px solid #ddd; padding:8px;">10강</td><td style="border:1px solid #ddd; padding:8px;">TcpClient, TcpListener 소개</td><td style="border:1px solid #ddd; padding:8px;">두 클래스 역할 구분, 동기의 한계 예고</td></tr>
+<tr style="background:#FFF4E5;"><td style="border:1px solid #ddd; padding:8px;"><strong>11강 ← 오늘</strong></td><td style="border:1px solid #ddd; padding:8px;"><strong>서버 1단계</strong></td><td style="border:1px solid #ddd; padding:8px;">최소 서버 — 접속 1개만 받고 끝</td></tr>
+<tr><td style="border:1px solid #ddd; padding:8px;">12강</td><td style="border:1px solid #ddd; padding:8px;">서버 2단계</td><td style="border:1px solid #ddd; padding:8px;"><code>Accept()</code> 무한루프 → 여러 명 순차 접속</td></tr>
+<tr><td style="border:1px solid #ddd; padding:8px;">13강</td><td style="border:1px solid #ddd; padding:8px;">서버 3단계</td><td style="border:1px solid #ddd; padding:8px;">접속 후 메시지를 실제로 계속 읽기</td></tr>
+<tr><td style="border:1px solid #ddd; padding:8px;">14강</td><td style="border:1px solid #ddd; padding:8px;">서버 4단계</td><td style="border:1px solid #ddd; padding:8px;">여러 클라이언트를 동시에 처리</td></tr>
+<tr><td style="border:1px solid #ddd; padding:8px;">15강</td><td style="border:1px solid #ddd; padding:8px;">서버 5단계</td><td style="border:1px solid #ddd; padding:8px;"><code>Stop()</code> + 정상 종료 처리</td></tr>
+</tbody>
+</table>
+
+<p>즉 오늘 배우는 코드는 "제일 못난 버전"이에요 — 일부러 부족하게 만들어서, 다음 강의마다 "이게 왜 부족했는지"를 하나씩 고쳐나가는 구조예요. 지금 완벽하지 않아도 전혀 이상한 게 아니에요.</p>
+
+<hr>
+
+<h3>오늘 볼 코드 (딱 3줄)</h3>
+
+<pre><code>mTCPListener = new TcpListener(mIP, mPort);
+mTCPListener.Start();
+TcpClient client = await mTCPListener.AcceptTcpClientAsync();
+</code></pre>
+
+<p>짧다고 만만하게 보면 안 돼요. 이 3줄 안에 "서버가 뭘 하는 존재인지"가 전부 들어있어요. 먼저 전체 흐름을 그림으로 한눈에 보고, 그다음에 한 줄씩 완전히 풀어볼게요.</p>
+
+<div style="margin: 24px 0;">
+<svg width="100%" height="340" viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" style="max-width:600px; font-family: sans-serif; display:block; margin:0 auto;">
+  <rect x="30" y="10" width="540" height="55" rx="8" fill="#EAF2FF" stroke="#4A90D9"/>
+  <text x="300" y="33" font-size="14" text-anchor="middle" fill="#333" font-weight="bold">① 창구 만들기</text>
+  <text x="300" y="52" font-size="12" text-anchor="middle" fill="#555">new TcpListener(mIP, mPort) — 아직 안 열림</text>
+
+  <line x1="300" y1="65" x2="300" y2="90" stroke="#999" stroke-width="2"/>
+  <polygon points="294,84 300,94 306,84" fill="#999"/>
+
+  <rect x="30" y="95" width="540" height="55" rx="8" fill="#E9F7EF" stroke="#4CAF7D"/>
+  <text x="300" y="118" font-size="14" text-anchor="middle" fill="#333" font-weight="bold">② 오픈!</text>
+  <text x="300" y="137" font-size="12" text-anchor="middle" fill="#555">.Start() — 이제 문 두드리는 걸 감지할 수 있음</text>
+
+  <line x1="300" y1="150" x2="300" y2="175" stroke="#999" stroke-width="2"/>
+  <polygon points="294,169 300,179 306,169" fill="#999"/>
+
+  <rect x="30" y="180" width="540" height="70" rx="8" fill="#FFF4E5" stroke="#E8A33D"/>
+  <text x="300" y="203" font-size="14" text-anchor="middle" fill="#333" font-weight="bold">③ 손님 기다리는 중 (await)</text>
+  <text x="300" y="222" font-size="12" text-anchor="middle" fill="#555">await AcceptTcpClientAsync()</text>
+  <text x="300" y="240" font-size="12" text-anchor="middle" fill="#B8860B">← 이 동안 스레드는 자리 비우고 다른 일 가능</text>
+
+  <line x1="300" y1="250" x2="300" y2="275" stroke="#999" stroke-width="2"/>
+  <polygon points="294,269 300,279 306,269" fill="#999"/>
+
+  <rect x="30" y="280" width="540" height="55" rx="8" fill="#FFE9E9" stroke="#E06666"/>
+  <text x="300" y="303" font-size="14" text-anchor="middle" fill="#333" font-weight="bold">④ 손님 도착 → 그 다음 프로그램 종료</text>
+  <text x="300" y="322" font-size="12" text-anchor="middle" fill="#B00020">⚠ 딱 1명만 받고 끝! (다음 강의에서 해결)</text>
+</svg>
+</div>
+
+<hr>
+
+<h3>본격적으로 보기 전에 — 코드 맨 위에 숨어있는 한 줄</h3>
+
+<p>실제 파일을 열어보면 아마 맨 위에 이런 줄이 있을 거예요.</p>
+
+<pre><code>using System.Net.Sockets;
+</code></pre>
+
+<p><code>TcpListener</code>, <code>TcpClient</code> 같은 클래스는 누가 뚝딱 만들어서 아무 데서나 쓸 수 있는 게 아니라, <strong>"System.Net.Sockets"라는 도구상자 안에 미리 들어있는 물건</strong>이에요. <code>using</code>은 "이 도구상자를 지금부터 쓸게요"라고 미리 꺼내놓는 선언이에요. 이 줄이 없으면 컴파일러가 "TcpListener가 뭔지 모르겠다"고 에러를 내요. 지금 당장 외울 필요는 없고, "아 저 줄이 그래서 있었구나" 정도만 알고 넘어가면 돼요.</p>
+
+<hr>
+
+<h3>줄 1 — <code>mTCPListener = new TcpListener(mIP, mPort);</code></h3>
+
+<p><strong><code>m</code>이 붙은 이유부터.</strong> C# 코드에서 이름 앞에 <code>m</code>(member의 m)을 붙이는 건 "이 변수는 메서드 안에서만 잠깐 쓰고 사라지는 게 아니라, 클래스 전체에서 계속 기억하고 있는 변수"라는 뜻이에요. 서버 객체는 계속 살아있어야 하니까(접속 기다리는 동안 계속 존재해야 함), 이런 변수는 클래스 필드로 선언돼요.</p>
+
+<p><strong><code>new TcpListener(mIP, mPort)</code>는 뭘 하는 거냐면</strong>, "이 IP 주소, 이 포트 번호로 손님을 받을 준비를 하는 창구 하나를 만들어줘"라는 뜻이에요.</p>
+
+<ul>
+<li><strong>IP(mIP)</strong>: 이 컴퓨터의 주소. 아파트로 치면 "몇 동"</li>
+<li><strong>포트(mPort)</strong>: 그 컴퓨터 안에서 몇 번 문으로 들어올지. 같은 아파트 동 안에서도 "몇 호"인지 정해야 우편물이 제대로 가겠죠</li>
+</ul>
+
+<div style="text-align:center; margin: 24px 0;">
+<svg width="100%" height="270" viewBox="0 0 500 270" xmlns="http://www.w3.org/2000/svg" style="max-width:420px; font-family: sans-serif;">
+  <rect x="100" y="20" width="300" height="150" fill="#EAF2FF" stroke="#4A90D9" stroke-width="2" rx="6"/>
+  <text x="250" y="45" font-size="14" text-anchor="middle" fill="#333" font-weight="bold">이 컴퓨터 (IP 주소 = "몇 동")</text>
+  <rect x="120" y="60" width="40" height="30" fill="#fff" stroke="#4A90D9"/>
+  <rect x="180" y="60" width="40" height="30" fill="#fff" stroke="#4A90D9"/>
+  <rect x="280" y="60" width="40" height="30" fill="#fff" stroke="#4A90D9"/>
+  <rect x="340" y="60" width="40" height="30" fill="#fff" stroke="#4A90D9"/>
+  <rect x="220" y="110" width="60" height="60" fill="#E9F7EF" stroke="#4CAF7D" stroke-width="2"/>
+  <text x="250" y="135" font-size="12" text-anchor="middle" fill="#333">문</text>
+  <text x="250" y="150" font-size="11" text-anchor="middle" fill="#333">(포트</text>
+  <text x="250" y="163" font-size="11" text-anchor="middle" fill="#333">번호 = "몇 호")</text>
+
+  <circle cx="250" cy="225" r="16" fill="#FFDDAA" stroke="#E8A33D" stroke-width="2"/>
+  <text x="250" y="230" font-size="14" text-anchor="middle">🙂</text>
+  <text x="250" y="258" font-size="12" text-anchor="middle" fill="#333">손님(클라이언트)</text>
+
+  <line x1="250" y1="207" x2="250" y2="178" stroke="#E8A33D" stroke-width="2"/>
+  <polygon points="244,186 250,176 256,186" fill="#E8A33D"/>
+</svg>
+</div>
+
+<p>즉 "이 IP, 이 포트로 서버를 만든다"는 건 <strong>"이 건물의, 이 문 앞에 접수처를 차린다"</strong>는 뜻이에요. 손님(클라이언트)은 정확히 그 동, 그 문으로 찾아와야 만날 수 있어요.</p>
+
+<p>이 줄이 끝나도 <strong>아직 아무것도 시작 안 했어요</strong>. 그냥 "이런 조건의 창구를 만들 준비"만 한 거예요 — 마치 매장 자리를 계약만 하고 아직 오픈 간판은 안 켠 상태.</p>
+
+<hr>
+
+<h3>줄 2 — <code>mTCPListener.Start();</code></h3>
+
+<p>이제 진짜로 오픈해요. 이 줄이 실행되는 순간, 운영체제(윈도우) 수준에서 "이 포트로 오는 연결 요청을 받아들이겠다"고 등록돼요. 비유하면 <strong>매장 간판에 불을 켜는 순간</strong>이에요. 이제부터 밖에서 그 포트로 접속을 시도하면 최소한 "누가 문을 두드리는지" 감지는 할 수 있는 상태가 돼요.</p>
+
+<p>근데 아직 아무도 안으로 못 들어왔어요 — 문을 열어놨을 뿐, 손님을 직접 맞이하는 건 다음 줄이에요.</p>
+
+<hr>
+
+<h3>줄 3 — <code>TcpClient client = await mTCPListener.AcceptTcpClientAsync();</code></h3>
+
+<p>이게 오늘의 핵심이에요. 이 한 줄에 1부에서 배운 <code>await</code>가 그대로 나와요.</p>
+
+<p><strong><code>AcceptTcpClientAsync()</code></strong>: "누군가 접속해올 때까지 기다렸다가, 접속하면 그 사람과의 연결(<code>TcpClient</code> 객체)을 돌려줘"라는 뜻의 메서드예요. 이름이 <code>~Async</code>로 끝나죠? 1부에서 말한 규칙대로 앞에 <code>await</code>가 붙어있어요.</p>
+
+<p><strong>지난 시간에 냈던 퀴즈</strong> 기억하세요? "아직 아무도 접속 안 했을 때, 이 스레드는 어떻게 되고 있을까?"</p>
+
+<blockquote>
+<p><strong>정답: 스레드를 놓아주고 있다가, 접속이 오면 그때 이어서 실행된다.</strong></p>
+<p>만약 (a)번(그 자리에서 멈춰서 CPU를 계속 쓰며 기다린다)이었다면, 그게 바로 옛날 방식의 <strong>동기(블로킹) 대기</strong>예요. 아무 일도 안 하면서 자리만 차지하고 있는 거라 자원 낭비고, 화면이 있는 프로그램이면 그동안 화면이 멈춰요. <code>await</code>를 쓰면 "지금 당장은 할 일 없으니 너(스레드)는 다른 데 가서 일해. 손님 오면 부를게" 상태가 돼요 — 1부의 카페 번호표 비유 그대로예요.</p>
+</blockquote>
+
+<p><strong><code>TcpClient client = ...</code></strong> 부분: 드디어 누군가 접속하면, 그 손님과의 연결 통로 자체가 <code>client</code>라는 변수에 담겨요. 이제 이 <code>client</code>를 통해서 그 사람과 메시지를 주고받을 수 있어요(그건 13강에서 다뤄요).</p>
+
+<hr>
+
+<h3>근데 이 코드, 치명적인 한계가 있어요</h3>
+
+<p>3줄을 순서대로 실행해보면: 창구 만들고 → 오픈하고 → <strong>딱 한 명 접속을 기다렸다가 그 사람이 들어오면 끝</strong>이에요. <code>Main</code> 메서드가 여기서 끝나버리니까, 프로그램 자체가 종료돼버려요.</p>
+
+<p>손님 A가 들어온 다음, 손님 B가 접속하려고 하면? <strong>이미 매장이 문 닫은 뒤예요.</strong> 서버라면 계속 열려있어야 하는데, 지금은 딱 1회용이에요.</p>
+
+<p>이 강의가 일부러 이렇게 "허접하게" 만든 이유가 있어요 — 이 한계를 직접 코드로 실행해보고 눈으로 확인해야, 다음 시간에 나올 해결책이 왜 필요한지 몸으로 이해가 되거든요.</p>
+
+<hr>
+
+<h3>실제로 실행하면 화면에 뭐가 뜨는지 (상상 실습)</h3>
+
+<p>직접 컴퓨터 두 대(또는 창 두 개)로 실행한다고 상상해볼게요.</p>
+
+<ol>
+<li>서버 프로그램을 먼저 실행 → 화면엔 아무것도 안 뜨고 그냥 <strong>멈춰있는 것처럼 보여요</strong>(사실은 3번째 줄에서 <code>await</code>로 기다리는 중)</li>
+<li>다른 창(또는 다른 컴퓨터)에서 클라이언트 프로그램을 실행해서 같은 IP·포트로 접속 시도</li>
+<li>접속이 성공하는 순간, 서버 쪽의 <code>await</code>가 "깨어나면서" <code>client</code> 변수에 값이 채워지고, 그다음 줄(있다면)로 넘어감</li>
+<li>지금은 그다음 줄이 없으니(<code>Main</code>이 끝) — <strong>서버 프로그램이 조용히 종료</strong>돼요. 에러 메시지도 안 뜨고 그냥 꺼져요.</li>
+<li>이 상태에서 두 번째 클라이언트가 접속을 시도하면? <strong>연결 자체가 안 돼요</strong> — 서버 프로그램이 이미 꺼졌으니까요.</li>
+</ol>
+
+<p>이 5단계를 직접 눈으로 보는 게 이번 강의의 진짜 목표예요. "서버가 접속 1개 받고 조용히 꺼진다"는 걸 글로만 읽는 것과, 실제로 두 번째 접속이 거부되는 걸 직접 겪어보는 건 이해도가 완전히 달라요. 가능하면 실습 환경에서 진짜로 한번 실행해보시길 추천해요.</p>
+
+<hr>
+
+<h3>다음 시간(12강, 2단계) 예고</h3>
+
+<p>다음 강의에서는 <code>while (KeepRunning)</code> 같은 <strong>무한 반복문</strong>으로 <code>AcceptTcpClientAsync()</code>를 계속 반복 호출해요. 그럼 손님 A를 받은 다음에도 창구가 안 닫히고, 계속 다음 손님(B, C, D...)을 받을 수 있게 돼요. "한 번 받고 끝" → "계속 받는다"로 바뀌는 게 다음 시간의 핵심이에요.</p>
+
+<hr>
+
+<h3>오늘 정리</h3>
+
+<ul>
+<li><code>new TcpListener(ip, port)</code>: 창구를 "만들기"만 함 (아직 안 열림)</li>
+<li><code>.Start()</code>: 창구를 "여는" 순간</li>
+<li><code>await AcceptTcpClientAsync()</code>: 손님이 올 때까지 스레드를 안 붙잡고 기다리다가, 오면 이어서 진행</li>
+<li>이 단계는 <strong>딱 1명만 받고 프로그램이 끝나는</strong> 의도된 한계가 있음 → 다음 강의에서 반복문으로 해결</li>
+</ul>
