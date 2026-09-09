@@ -1,0 +1,181 @@
+<h2>1부. 서버 코드를 보기 전에 — "비동기(async/await)"가 대체 뭔데?</h2>
+
+<p>먼저 하나만 짚고 갈게요. <strong>"코드"라는 건 컴퓨터한테 순서대로 시킬 일을 적어놓은 목록</strong>이에요. 요리 레시피랑 똑같아요 — "1. 물을 끓인다 2. 면을 넣는다 3. 3분 기다린다" 이런 식으로요. 이번 글엔 코드가 몇 줄 나오는데, <strong>코드를 몰라도 옆에 있는 그림과 설명만 보셔도 이해되게</strong> 썼어요. 코드는 "아 이렇게 생겼구나" 정도로만 보고 넘어가셔도 돼요.</p>
+
+<p>지난 시간에 <code>TcpListener</code>, <code>TcpClient</code>라는 이름을 처음 봤어요. 근데 그 전에 코드 안에 <code>async</code>, <code>await</code>라는 낯선 단어부터 나와서 막막했을 거예요. 오늘은 네트워크 얘기는 잠깐 미뤄두고, <strong>이 단어들이 대체 왜 필요한지</strong>부터 완전히 처음부터 풀어볼게요.</p>
+
+<hr>
+
+<h3>1. 클래스랑 메서드, 다시 한 번 (진짜 기초)</h3>
+
+<p>C#을 오랜만에 보면 이것부터 헷갈려요. 아주 짧게 복습만 하고 갈게요.</p>
+
+<pre><code>class Dog
+{
+    public string Name;          // 이건 "필드" — Dog가 가지고 있는 정보
+
+    public void Bark()           // 이건 "메서드" — Dog가 할 수 있는 행동
+    {
+        Console.WriteLine(Name + "가 짖습니다!");
+    }
+}
+</code></pre>
+
+<p>이렇게 설계도(class)를 그려놓고, <code>new Dog()</code>라고 하면 실제로 강아지 한 마리(객체/인스턴스)가 만들어져요. 그 강아지한테 <code>.Bark()</code>라고 하면 방금 설계도에 적어둔 행동을 실제로 시키는 거예요.</p>
+
+<p>이번 강의에 나올 <code>TcpListener</code>도 똑같아요. 누군가 미리 만들어둔 "서버 역할을 하는 설계도"고, 우리는 그걸로 객체를 하나 만들어서(<code>new TcpListener(...)</code>) <code>.Start()</code> 같은 메서드를 불러 쓰는 것뿐이에요.</p>
+
+<hr>
+
+<h3>2. 그런데 "스레드"가 정확히 뭔데?</h3>
+
+<p>앞으로 계속 나올 단어라서 여기서 확실히 짚고 갈게요. <strong>스레드(Thread) = 실제로 일을 하나씩 처리하는 "일꾼"</strong>이에요. 컴퓨터 안에서 "지금 이 순간 이 작업을 실행하고 있는 주체"를 말해요.</p>
+
+<p>식당 비유로 보면: 요리사가 딱 한 명이면, 그 요리사가 손님 응대도 하고 요리도 하고 계산도 해야 해요. 근데 사람은 <strong>한 번에 한 가지 일만</strong> 손댈 수 있죠. 우리 프로그램도 보통 이런 "일꾼" 하나(또는 소수)가 모든 일을 순서대로 처리해요.</p>
+
+<div style="text-align:center; margin: 24px 0;">
+<svg width="100%" height="180" viewBox="0 0 500 180" xmlns="http://www.w3.org/2000/svg" style="max-width:420px; font-family: sans-serif;">
+  <circle cx="90" cy="90" r="32" fill="#FFDDAA" stroke="#E8A33D" stroke-width="2"/>
+  <text x="90" y="98" font-size="24" text-anchor="middle">👷</text>
+  <text x="90" y="140" font-size="12" text-anchor="middle" fill="#333">스레드(일꾼) 1명</text>
+
+  <line x1="125" y1="80" x2="195" y2="50" stroke="#999" stroke-width="1.5" stroke-dasharray="4"/>
+  <line x1="125" y1="90" x2="195" y2="90" stroke="#999" stroke-width="1.5" stroke-dasharray="4"/>
+  <line x1="125" y1="100" x2="195" y2="130" stroke="#999" stroke-width="1.5" stroke-dasharray="4"/>
+
+  <rect x="200" y="30" width="140" height="40" rx="6" fill="#FFE9E9" stroke="#E06666"/>
+  <text x="270" y="55" font-size="12" text-anchor="middle" fill="#333">손님 응대하기</text>
+  <rect x="200" y="70" width="140" height="40" rx="6" fill="#EAF2FF" stroke="#4A90D9"/>
+  <text x="270" y="95" font-size="12" text-anchor="middle" fill="#333">요리하기</text>
+  <rect x="200" y="110" width="140" height="40" rx="6" fill="#E9F7EF" stroke="#4CAF7D"/>
+  <text x="270" y="135" font-size="12" text-anchor="middle" fill="#333">계산하기</text>
+
+  <text x="420" y="80" font-size="12" fill="#B00020">한 번에</text>
+  <text x="420" y="98" font-size="12" fill="#B00020">한 개씩만!</text>
+</svg>
+</div>
+
+<p>이제부터 "스레드가 자리를 비운다/묶여있다"는 말이 나오면, <strong>이 일꾼이 지금 손이 비어있는지, 아니면 뭔가 붙잡고 못 움직이는지</strong>를 말하는 거라고 생각하시면 돼요. 뒤에서 계속 이 그림을 떠올리면서 읽으면 훨씬 쉬워요.</p>
+
+<hr>
+
+<h3>3. 동기(Synchronous) — 우리가 원래 알던 방식</h3>
+
+<p>지금까지 짜본 C# 코드는 대부분 이런 식이었을 거예요.</p>
+
+<pre><code>Console.WriteLine("1번");
+Console.WriteLine("2번");
+Console.WriteLine("3번");
+</code></pre>
+
+<p>위에서 아래로, 한 줄이 끝나야 다음 줄이 실행돼요. 이게 <strong>동기(synchronous)</strong>예요. 너무 당연해서 이름 붙일 필요도 없었죠.</p>
+
+<p>문제는 <strong>중간에 "오래 걸리는 일"</strong>이 끼어있을 때예요. 예를 들어 이런 상황이 있다고 해봐요. (아래는 실제 C# 문법이 아니라, 이해를 돕기 위해 한글로 풀어 쓴 <strong>가짜 예시</strong>예요)</p>
+
+<pre><code>Console.WriteLine("커피 주문함");
+커피를_직접_내린다();  // 이게 3초 걸린다고 하면?
+Console.WriteLine("커피 다 됨");
+</code></pre>
+
+<p>동기 방식에서는 중간 줄이 끝날 때까지 <strong>프로그램 전체가 그냥 멈춰서 기다려요</strong>. 콘솔 프로그램이면 그냥 3초 느린 정도로 넘어가지만, <strong>화면(UI)이 있는 프로그램(WinForm 같은)</strong>에서 이 짓을 하면 큰일 나요 — 3초 동안 창 전체가 하얗게 굳어버려요(마우스 클릭도 안 먹힘, "응답 없음" 상태). 왜냐하면 화면을 그리는 것도, 버튼 클릭을 받는 것도 전부 <strong>단 하나의 스레드(작업자)</strong>가 담당하는데, 그 스레드가 지금 딴 일 하느라 못 움직이거든요.</p>
+
+<hr>
+
+<h3>4. 비동기(Asynchronous) — "기다리는 동안 다른 일도 하자"</h3>
+
+<p>비유를 하나 들어볼게요.</p>
+
+<blockquote>
+<p><strong>카페 상황</strong><br>
+㉠ 동기 방식: 손님이 커피 주문하면, 점원이 커피 다 나올 때까지 그 자리에 서서 기다림. 그동안 다른 손님 주문은 아예 못 받음.<br>
+㉡ 비동기 방식: 손님이 주문하면 <strong>번호표를 주고</strong>, 점원은 바로 다음 손님 주문을 받으러 감. 커피가 다 되면 번호가 불리고, 그때 손님이 와서 가져감.</p>
+</blockquote>
+
+<p>㉡이 바로 <code>async</code>/<code>await</code>가 하는 일이에요. "이 작업은 시간이 걸리니까, 기다리는 동안 너(스레드)는 다른 일을 해도 돼. 결과가 나오면 그때 다시 불러줄게"라는 뜻이에요. (이것도 개념 설명용 가짜 예시예요 — 실제 문법은 2부에서 진짜 코드로 봐요)</p>
+
+<pre><code>Console.WriteLine("커피 주문함");
+await 커피를_직접_내린다();   // 여기서 스레드가 "묶여있지 않고" 풀려남
+Console.WriteLine("커피 다 됨");  // 커피가 실제로 다 됐을 때 이 줄이 이어서 실행됨
+</code></pre>
+
+<p>겉보기엔 순서(1번→2번→3번)가 그대로 유지되는 것처럼 보이지만, <code>await</code>가 붙은 줄에서 "기다리는 동안"에는 스레드가 다른 일(예: 화면 그리기, 다른 버튼 클릭 처리)을 할 수 있어요. 이게 동기 방식과의 결정적인 차이예요.</p>
+
+<p>말로만 하면 헷갈리니까 그림으로 비교해볼게요.</p>
+
+<div style="text-align:center; margin: 24px 0;">
+<svg width="100%" height="260" viewBox="0 0 640 260" xmlns="http://www.w3.org/2000/svg" style="max-width:640px; font-family: sans-serif;">
+  <text x="10" y="25" font-size="16" font-weight="bold" fill="#333">😫 동기(기존 방식) — 한 번에 한 사람만</text>
+  <rect x="10" y="40" width="180" height="50" rx="8" fill="#FFE9E9" stroke="#E06666"/>
+  <text x="100" y="70" font-size="13" text-anchor="middle" fill="#333">손님 A 응대 중...</text>
+  <rect x="200" y="40" width="180" height="50" rx="8" fill="#F0F0F0" stroke="#AAAAAA"/>
+  <text x="290" y="63" font-size="12" text-anchor="middle" fill="#777">손님 B</text>
+  <text x="290" y="79" font-size="12" text-anchor="middle" fill="#777">그냥 대기 중...</text>
+  <rect x="390" y="40" width="180" height="50" rx="8" fill="#FFE9E9" stroke="#E06666"/>
+  <text x="480" y="70" font-size="13" text-anchor="middle" fill="#333">A 끝나야 B 시작</text>
+
+  <line x1="10" y1="110" x2="600" y2="110" stroke="#ccc" stroke-width="2"/>
+  <polygon points="598,105 608,110 598,115" fill="#ccc"/>
+  <text x="580" y="128" font-size="12" fill="#999">시간 →</text>
+
+  <text x="10" y="165" font-size="16" font-weight="bold" fill="#333">😀 비동기(await) — 기다리는 동안 다른 사람도 처리</text>
+  <rect x="10" y="180" width="120" height="55" rx="8" fill="#E9F7EF" stroke="#4CAF7D"/>
+  <text x="70" y="203" font-size="12" text-anchor="middle" fill="#333">A 주문 받음</text>
+  <text x="70" y="219" font-size="11" text-anchor="middle" fill="#666">(번호표 줌)</text>
+  <rect x="140" y="180" width="120" height="55" rx="8" fill="#E9F7EF" stroke="#4CAF7D"/>
+  <text x="200" y="203" font-size="12" text-anchor="middle" fill="#333">B 주문 받음</text>
+  <text x="200" y="219" font-size="11" text-anchor="middle" fill="#666">(A는 기다리는 중)</text>
+  <rect x="270" y="180" width="120" height="55" rx="8" fill="#E9F7EF" stroke="#4CAF7D"/>
+  <text x="330" y="203" font-size="12" text-anchor="middle" fill="#333">C 주문 받음</text>
+  <rect x="400" y="180" width="130" height="55" rx="8" fill="#EAF2FF" stroke="#4A90D9"/>
+  <text x="465" y="200" font-size="12" text-anchor="middle" fill="#333">A 커피 완성!</text>
+  <text x="465" y="216" font-size="11" text-anchor="middle" fill="#666">번호 불림 → 수령</text>
+</svg>
+</div>
+
+<p>위 그림에서 중요한 건, 비동기 쪽은 <strong>A를 기다리는 "동안"에 B, C 주문도 같이 처리됐다</strong>는 거예요. A가 커피를 기다리느라 다른 사람 응대가 멈추지 않아요.</p>
+
+<p>비유 하나 더 — <strong>세탁기</strong>를 생각해보세요. 세탁기 시작 버튼을 누르고 그 앞에 40분 동안 서서 지켜보는 사람은 없죠. 버튼만 누르고(<code>await 세탁기_돌리기()</code>) 다른 집안일을 하다가, "삐삐" 알림이 울리면(작업 완료) 그때 가서 빨래를 꺼내요. <strong>"기다리는 동안 다른 일을 한다"는 감각은 사실 일상에서 이미 익숙한 거예요</strong> — 코드에서는 그걸 명시적으로 <code>await</code>라고 써줘야 할 뿐이에요.</p>
+
+<div style="background:#F7F7F7; border-left: 4px solid #999; padding: 12px 16px; margin: 20px 0;">
+<p style="margin:0 0 8px 0;"><strong>❓ 자주 하는 오해: "async라고 쓰면 여러 작업이 동시에(병렬로) 실행되는 거 아닌가요?"</strong></p>
+<p style="margin:0;">아니에요. <code>async</code>/<code>await</code>는 <strong>"기다리는 동안 스레드를 놀리지 않는다"</strong>는 뜻이지, "여러 일을 진짜로 동시에 처리한다"는 뜻이 아니에요. 위 세탁기 비유로 치면, 세탁기가 돌아가는 동안 <strong>내(스레드)가</strong> 설거지도 하고 청소도 할 수 있다는 거지, 내가 몸이 두 개로 늘어나서 세탁기를 붙잡고 있으면서 동시에 설거지도 하는 게 아니에요. 이 차이가 진짜 "병렬 처리(Parallel)"와 "비동기(Asynchronous)"를 구분하는 핵심인데, 지금 단계에선 "비동기 = 기다리는 동안 스레드를 안 붙잡아둠" 정도만 정확히 알면 충분해요.</p>
+</div>
+
+<hr>
+
+<h3>5. 규칙 두 가지만 외우면 됨</h3>
+
+<ol>
+<li><strong><code>await</code>는 <code>async</code>라고 표시된 메서드 안에서만 쓸 수 있다.</strong> ("나는 기다리는 동안 남 눈치 안 보고 자리 비울 수 있어"라고 미리 선언해두는 것)</li>
+<li><strong>이름이 <code>~Async</code>로 끝나는 메서드는 대부분 앞에 <code>await</code>를 붙여서 쓴다.</strong> (예: <code>AcceptTcpClientAsync()</code>, <code>ReadAsync()</code> — .NET에서 지켜지는 명명 규칙이에요)</li>
+</ol>
+
+<hr>
+
+<h3>6. 그럼 서버는 왜 특히 이게 중요한가?</h3>
+
+<p>은행 창구를 생각해보세요. 창구 직원(스레드)이 한 명뿐인데, 손님 A 업무 처리에 5분 걸린다고 "다음 분!"을 안 부르고 그 자리에 가만히 서 있으면, 뒤에 줄 선 손님 B, C, D는 5분 내내 아무것도 못 받아요.</p>
+
+<p>서버도 똑같아요. <strong>손님 A의 접속을 처리하는 동안(대기하는 동안) 손님 B의 접속 요청도 받을 수 있어야</strong> 진짜 서버 역할을 해요. 그래서 다음 시간에 볼 <code>TcpListener</code> 서버 코드는 처음부터 끝까지 전부 <code>async</code>/<code>await</code>로 짜여있어요.</p>
+
+<hr>
+
+<h3>오늘 정리</h3>
+
+<ul>
+<li>동기: 한 줄씩 순서대로, 오래 걸리는 일이 있으면 전체가 멈춤</li>
+<li>비동기(<code>async</code>/<code>await</code>): 오래 걸리는 일을 기다리는 동안 스레드를 풀어줬다가, 끝나면 이어서 실행</li>
+<li><code>~Async</code>로 끝나는 메서드는 <code>await</code>와 짝지어 쓴다</li>
+<li>서버는 "여러 손님을 동시에" 상대해야 하니까 비동기가 사실상 필수</li>
+</ul>
+
+<hr>
+
+<h3>넘어가기 전에 하나만 확인해볼게요</h3>
+
+<p>요리사(스레드)가 손님 A의 국이 끓기를 기다리는 동안, 손님 B의 주문을 받으러 갔어요. 국이 다 끓으면 어떻게 될까요?</p>
+<p>(a) 요리사는 이미 다른 일(B 응대) 하느라 바빠서 국이 끓은 걸 영영 모른다<br>
+(b) 국이 끓었다는 신호가 오면, 요리사가 하던 일을 마저 하다가 그 신호를 받아서 다시 국 쪽 작업을 이어서 한다</p>
+<p>정답은 <strong>(b)</strong>예요. <code>await</code>로 넘긴 작업은 "잊혀지는" 게 아니라, 끝나면 "다시 불러달라"는 예약이 걸려있는 상태예요. 그래서 결과가 나오면 정확히 그 지점부터 이어서 실행돼요. 이걸 붙잡고 2부로 넘어가면 훨씬 쉬워요.</p>
+
+<p><strong>다음 시간(2부)</strong>에는 이 개념을 들고 실제 11강 코드 3줄을 한 줄씩 완전히 뜯어볼 거예요.</p>
